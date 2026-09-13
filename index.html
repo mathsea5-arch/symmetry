@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<title>대칭이동 - 좌표평면에서 몸으로 느끼기</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div id="topbar">
+  <h1>대칭이동</h1>
+  <div id="tab-nav">
+    <button type="button" class="tab-btn" data-tab="point">점의 대칭이동</button>
+    <button type="button" class="tab-btn" data-tab="shape">도형의 대칭이동</button>
+    <button type="button" class="tab-btn" data-tab="principle">원리 설명</button>
+    <button type="button" class="tab-btn" data-tab="discovery">발견형 질문</button>
+  </div>
+  <span id="student-name-display"></span>
+</div>
+
+<!-- 1. 점의 대칭이동 -->
+<section class="page-section" id="point">
+  <div class="section-card">
+    <h2>점의 대칭이동 탐구</h2>
+    <div id="point-widget"></div>
+  </div>
+  <div class="section-card">
+    <div id="point-note"></div>
+    <div id="point-check"></div>
+  </div>
+</section>
+
+<!-- 4. 도형의 대칭이동 -->
+<section class="page-section" id="shape">
+  <div class="section-card">
+    <h2>도형의 대칭이동 탐구</h2>
+    <div id="shape-widget"></div>
+  </div>
+  <div class="section-card">
+    <div id="shape-note"></div>
+    <div id="shape-check"></div>
+  </div>
+</section>
+
+<!-- 5. 원리 설명 -->
+<section class="page-section" id="principle">
+  <div class="section-card">
+    <h2>왜 y=x 대칭은 좌표를 통째로 바꿀까?</h2>
+    <p>x축 대칭은 y의 부호만 바뀌었는데, y=x 대칭은 왜 x와 y가 통째로 자리를 바꿀까요?
+    핵심은 두 가지입니다: <b>① PP'의 중점이 y=x 위에 있다</b>, <b>② PP'은 y=x에 수직이다</b>.
+    아래에서 단계별로 확인해봅시다.</p>
+    <div id="principle-widget"></div>
+  </div>
+  <div class="section-card">
+    <div id="principle-note"></div>
+    <div id="principle-check"></div>
+  </div>
+</section>
+
+<!-- 6. 발견형 질문 -->
+<section class="page-section" id="discovery">
+  <div class="section-card">
+    <h2>스스로 확인해보기</h2>
+    <p class="widget-hint">먼저 필기 영역에 자기 생각을 적고 "제출"을 눌러야 그 문제의 "정답/힌트 보기" 버튼이 열려요.</p>
+    <div id="discovery-questions"></div>
+  </div>
+  <div class="section-card">
+    <div id="discovery-check"></div>
+  </div>
+</section>
+
+<!-- 학생 식별 모달 -->
+<div id="student-modal">
+  <div class="modal-box">
+    <h3>이름과 번호를 알려주세요</h3>
+    <input type="text" id="student-name-input" placeholder="이름">
+    <input type="text" id="student-no-input" placeholder="학번">
+    <button type="button" class="secondary-btn" id="student-modal-confirm" style="width:100%">시작하기</button>
+  </div>
+</div>
+
+<script src="data-store.js"></script>
+<script src="coordinate-plane.js"></script>
+<script src="canvas-input.js"></script>
+<script src="understanding-check.js"></script>
+<script src="symmetry-point.js"></script>
+<script src="symmetry-shape.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
