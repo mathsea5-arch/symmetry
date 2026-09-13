@@ -92,16 +92,10 @@ document.addEventListener("DOMContentLoaded", function () {
   function initSection(id) {
     if (id === "point") {
       initSymmetryPointWidget(document.getElementById("point-widget"));
-      createNoteCanvas(document.getElementById("point-note"), { title: "점의 대칭이동 - 필기" });
-      createUnderstandingCheck(document.getElementById("point-check"), { activityId: "point-widget" });
     } else if (id === "shape") {
       initSymmetryShapeWidget(document.getElementById("shape-widget"));
-      createNoteCanvas(document.getElementById("shape-note"), { title: "도형의 대칭이동 - 필기" });
-      createUnderstandingCheck(document.getElementById("shape-check"), { activityId: "shape-widget" });
     } else if (id === "principle") {
       initPrincipleExplainer(document.getElementById("principle-widget"));
-      createNoteCanvas(document.getElementById("principle-note"), { title: "원리 설명 - 필기" });
-      createUnderstandingCheck(document.getElementById("principle-check"), { activityId: "principle" });
     } else if (id === "discovery") {
       buildDiscoverySection();
       createUnderstandingCheck(document.getElementById("discovery-check"), { activityId: "discovery" });
