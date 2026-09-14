@@ -82,7 +82,8 @@ function guessSecondaryParams(type, params, key) {
 }
 
 // anchor(학생이 옮긴 대표점)와 secondary(고정된 방향/폭 값)로 회색 도형의 좌표점들을 만든다.
-function guessShapePoints(type, anchor, secondary, plane) {
+// angleDeg: 포물선을 y=x 대칭(옆으로 누운 모양)에 맞추기 위해 학생이 돌리는 회전각(도).
+function guessShapePoints(type, anchor, secondary, plane, angleDeg) {
   if (type === "circle") {
     var pts = [];
     for (var t = 0; t <= 72; t++) {
@@ -104,10 +105,20 @@ function guessShapePoints(type, anchor, secondary, plane) {
     ];
   }
   if (type === "parabola") {
+    // 좌표평면 전체 폭보다 넓게 샘플링해서, anchor가 어디로 옮겨지거나 회전해도
+    // 곡선이 좌표평면 가장자리에서 끊기지 않도록 한다.
+    var halfWidth = plane.xMax - plane.xMin;
+    var theta = ((angleDeg || 0) * Math.PI) / 180;
+    var cos = Math.cos(theta),
+      sin = Math.sin(theta);
     var out = [];
-    for (var i = 0; i <= 80; i++) {
-      var x = anchor.x - 4 + (8 * i) / 80;
-      out.push({ x: x, y: secondary.a * (x - anchor.x) * (x - anchor.x) + anchor.y });
+    for (var i = 0; i <= 160; i++) {
+      var u = -halfWidth + (2 * halfWidth * i) / 160;
+      var lx = u,
+        ly = secondary.a * u * u;
+      var rx = lx * cos - ly * sin,
+        ry = lx * sin + ly * cos;
+      out.push({ x: anchor.x + rx, y: anchor.y + ry });
     }
     return out;
   }
@@ -175,6 +186,10 @@ function initSymmetryShapeWidget(container) {
     "</select></label>" +
     '<div id="shape-challenge-panel" class="predict-panel">' +
     '<p class="widget-hint">회색 도형을 통째로 드래그해서, 파란 도형(F)이 선택한 대칭이동을 하면 어디로 갈지 옮겨보세요.</p>' +
+    '<div id="shape-rotate-row" class="slider-row" hidden>' +
+    '<label>회색 포물선 회전: <span class="slider-val" id="shape-rotate-val">0°</span></label>' +
+    '<input type="range" id="shape-rotate-input" min="-180" max="180" step="5" value="0"/>' +
+    "</div>" +
     '<button type="button" class="secondary-btn" id="shape-confirm-btn" disabled>정답 확인</button>' +
     '<div id="shape-predict-result" class="predict-result"></div>' +
     "</div>" +
@@ -195,6 +210,7 @@ function initSymmetryShapeWidget(container) {
     },
     symmetry: "xaxis",
     guessAnchor: { x: 0, y: 0 }, // 학생이 드래그로 옮기는 회색 도형의 대표점
+    guessAngle: 0, // 포물선 + y=x 대칭에서만 사용하는 회전각(도)
     hasMoved: false,
     revealed: false,
     freePoints: [],
@@ -202,16 +218,27 @@ function initSymmetryShapeWidget(container) {
 
   var shapeResult = container.querySelector("#shape-predict-result");
   var shapeConfirmBtn = container.querySelector("#shape-confirm-btn");
+  var rotateRow = container.querySelector("#shape-rotate-row");
+  var rotateInput = container.querySelector("#shape-rotate-input");
+  var rotateVal = container.querySelector("#shape-rotate-val");
+
+  function needsRotation() {
+    return state.shapeType === "parabola" && state.symmetry === "yeqx";
+  }
 
   function startChallenge() {
     var params = state.params[state.shapeType];
     var ref = shapeReferencePoint(state.shapeType, params, plane);
     // 처음엔 원래 도형과 겹치지 않도록 살짝 옮겨서 배치 (학생이 옮겨야 함을 분명히 보여줌)
     state.guessAnchor = { x: ref.x + 1.5, y: ref.y + 1.5 };
+    state.guessAngle = 0;
     state.hasMoved = false;
     state.revealed = false;
     shapeConfirmBtn.disabled = true;
     shapeResult.textContent = "";
+    rotateRow.hidden = !needsRotation();
+    rotateInput.value = 0;
+    rotateVal.textContent = "0°";
   }
 
   var sliderConfig = {
@@ -260,6 +287,9 @@ function initSymmetryShapeWidget(container) {
     plane.resize();
     plane.clear();
     plane.drawGrid();
+    if (state.symmetry === "yeqx") {
+      cpDrawSegment(plane, plane.xMin, plane.xMin, plane.xMax, plane.xMax, "#c9cfd9", true);
+    }
     plane.drawAxes();
 
     if (state.mode === "shape") {
@@ -271,7 +301,7 @@ function initSymmetryShapeWidget(container) {
       cpDrawLabel(plane, ref.x, ref.y, "P", "#1c7ed6");
 
       var secondary = guessSecondaryParams(state.shapeType, params, state.symmetry);
-      var guessPts = guessShapePoints(state.shapeType, state.guessAnchor, secondary, plane);
+      var guessPts = guessShapePoints(state.shapeType, state.guessAnchor, secondary, plane, state.guessAngle);
       cpDrawPolyline(plane, guessPts, "rgba(32,36,43,0.55)", 2.5);
       cpDrawPoint(plane, state.guessAnchor.x, state.guessAnchor.y, "rgba(32,36,43,0.55)", 6);
 
@@ -290,9 +320,10 @@ function initSymmetryShapeWidget(container) {
           '<div style="color:#8a94a6">정답 확인을 누르면 대칭이동된 도형과 방정식이 나타나요.</div>';
       }
     } else {
-      cpDrawPolyline(plane, state.freePoints, "#1c7ed6", 3);
-      var rf = reflectPointsBy(state.symmetry, state.freePoints);
-      cpDrawPolyline(plane, rf, "#e8590c", 3);
+      state.freePoints.forEach(function (stroke) {
+        cpDrawPolyline(plane, stroke, "#1c7ed6", 3);
+        cpDrawPolyline(plane, reflectPointsBy(state.symmetry, stroke), "#e8590c", 3);
+      });
       container.querySelector("#equation-box").innerHTML =
         '<div>지금 그린 곡선을 <span style="color:#e8590c">' + SYM_LABELS[state.symmetry] + "</span>으로 옮긴 모습이 주황색이에요. 어떤 곡선이든 대칭이동이 항상 성립해요.</div>";
     }
@@ -340,11 +371,27 @@ function initSymmetryShapeWidget(container) {
       ok = pointToLineDist(state.guessAnchor, a1, a2) < 0.5;
     } else {
       var actualVertex = reflectPointBy(state.symmetry, { x: params.h, y: params.k });
-      ok = distBetween(state.guessAnchor, actualVertex) < 0.6;
+      var posOk = distBetween(state.guessAnchor, actualVertex) < 0.6;
+      if (needsRotation()) {
+        var diff = (((state.guessAngle - -90) % 360) + 540) % 360 - 180;
+        ok = posOk && Math.abs(diff) < 15;
+      } else {
+        ok = posOk;
+      }
     }
     shapeResult.textContent = ok
-      ? "정확해요! 회색 도형을 대칭이동 결과와 거의 같은 자리로 옮겼어요."
+      ? "정확해요! 회색 도형을 대칭이동 결과와 거의 같은 자리(와 방향)로 옮겼어요."
+      : needsRotation()
+      ? "아직 위치나 회전이 달라요. y=x 대칭이면 포물선이 옆으로 눕는다는 점을 생각하며 위치와 회전각을 함께 맞춰보세요."
       : "아직 자리가 달라요. 파란 도형(F)과 주황 도형(F')을 비교하며 어느 방향으로 더 옮겨야 할지 생각해볼까요?";
+    render();
+  });
+
+  rotateInput.addEventListener("input", function () {
+    state.guessAngle = parseFloat(rotateInput.value);
+    rotateVal.textContent = state.guessAngle + "°";
+    state.hasMoved = true;
+    shapeConfirmBtn.disabled = false;
     render();
   });
 
@@ -367,7 +414,7 @@ function initSymmetryShapeWidget(container) {
     if (state.shapeType === "circle") {
       return distBetween(coord, state.guessAnchor) <= secondary.r + 0.35;
     }
-    var pts = guessShapePoints(state.shapeType, state.guessAnchor, secondary, plane);
+    var pts = guessShapePoints(state.shapeType, state.guessAnchor, secondary, plane, state.guessAngle);
     if (state.shapeType === "line") {
       return pointToLineDist(coord, pts[0], pts[1]) < 0.4;
     }
@@ -394,7 +441,7 @@ function initSymmetryShapeWidget(container) {
     if (state.mode !== "free") return;
     drawingFree = true;
     canvas.setPointerCapture(e.pointerId);
-    state.freePoints.push(coord);
+    state.freePoints.push([coord]); // 새 획(stroke) 시작
     render();
   });
   canvas.addEventListener("pointermove", function (e) {
@@ -416,7 +463,7 @@ function initSymmetryShapeWidget(container) {
     }
 
     if (!drawingFree) return;
-    state.freePoints.push(coord);
+    state.freePoints[state.freePoints.length - 1].push(coord);
     render();
   });
   function stopFree() {

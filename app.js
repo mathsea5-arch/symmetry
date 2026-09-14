@@ -40,7 +40,12 @@ function buildDiscoverySection() {
     block.className = "discovery-q";
     block.innerHTML =
       '<p class="discovery-q-text">' + q.text + "</p>" +
+      '<div class="discovery-input-tabs">' +
+      '<button type="button" class="discovery-input-tab-btn active" data-input-mode="pen">펜으로 쓰기</button>' +
+      '<button type="button" class="discovery-input-tab-btn" data-input-mode="type">타이핑으로 쓰기</button>' +
+      "</div>" +
       '<div class="discovery-note"></div>' +
+      '<textarea class="discovery-typed-input" placeholder="여기에 생각을 입력하세요..." hidden></textarea>' +
       '<div class="discovery-actions">' +
       '<button type="button" class="secondary-btn discovery-submit-btn">제출</button>' +
       '<button type="button" class="secondary-btn discovery-reveal-btn" disabled>정답/힌트 보기</button>' +
@@ -49,12 +54,27 @@ function buildDiscoverySection() {
     wrap.appendChild(block);
 
     var noteWidget = createNoteCanvas(block.querySelector(".discovery-note"), { title: q.id.toUpperCase() + " - 내 생각 적기" });
+    var noteEl = block.querySelector(".discovery-note");
+    var typedInput = block.querySelector(".discovery-typed-input");
     var submitBtn = block.querySelector(".discovery-submit-btn");
     var revealBtn = block.querySelector(".discovery-reveal-btn");
     var answerBox = block.querySelector(".discovery-answer");
+    var inputMode = "pen";
+
+    block.querySelectorAll(".discovery-input-tab-btn").forEach(function (tabBtn) {
+      tabBtn.addEventListener("click", function () {
+        inputMode = tabBtn.getAttribute("data-input-mode");
+        block.querySelectorAll(".discovery-input-tab-btn").forEach(function (b) {
+          b.classList.toggle("active", b === tabBtn);
+        });
+        noteEl.hidden = inputMode !== "pen";
+        typedInput.hidden = inputMode !== "type";
+      });
+    });
 
     submitBtn.addEventListener("click", function () {
-      DataStore.saveRecord({ activityId: "discovery-" + q.id, type: "note", payload: noteWidget.getDataURL() });
+      var payload = inputMode === "type" ? typedInput.value.trim() : noteWidget.getDataURL();
+      DataStore.saveRecord({ activityId: "discovery-" + q.id, type: "note", payload: payload });
       submitBtn.disabled = true;
       submitBtn.textContent = "제출 완료";
       revealBtn.disabled = false;

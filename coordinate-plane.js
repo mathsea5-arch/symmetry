@@ -8,6 +8,10 @@ function createCoordinatePlane(canvas, opts) {
   var yMax = opts.yMax !== undefined ? opts.yMax : 8;
   var ctx = canvas.getContext("2d");
 
+  // x/y 단위 눈금이 항상 같은 픽셀 크기를 갖도록(정사각형 좌표평면) 하는 스케일/오프셋.
+  // resize()에서 캔버스 실제 크기를 기준으로 다시 계산해 캐시해둔다.
+  var layout = { scale: 1, offX: 0, offY: 0, w: 0, h: 0 };
+
   function width() {
     return canvas.getBoundingClientRect().width;
   }
@@ -21,23 +25,30 @@ function createCoordinatePlane(canvas, opts) {
     canvas.width = Math.max(1, Math.round(rect.width * dpr));
     canvas.height = Math.max(1, Math.round(rect.height * dpr));
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+    var w = rect.width,
+      h = rect.height;
+    var xSpan = xMax - xMin,
+      ySpan = yMax - yMin;
+    var scale = Math.min(w / xSpan, h / ySpan);
+    layout.scale = scale;
+    layout.w = w;
+    layout.h = h;
+    layout.offX = (w - scale * xSpan) / 2;
+    layout.offY = (h - scale * ySpan) / 2;
   }
 
   function toPixel(x, y) {
-    var w = width(),
-      h = height();
     return {
-      x: ((x - xMin) / (xMax - xMin)) * w,
-      y: h - ((y - yMin) / (yMax - yMin)) * h,
+      x: layout.offX + (x - xMin) * layout.scale,
+      y: layout.offY + (yMax - y) * layout.scale,
     };
   }
 
   function toCoord(px, py) {
-    var w = width(),
-      h = height();
     return {
-      x: xMin + (px / w) * (xMax - xMin),
-      y: yMin + ((h - py) / h) * (yMax - yMin),
+      x: xMin + (px - layout.offX) / layout.scale,
+      y: yMax - (py - layout.offY) / layout.scale,
     };
   }
 
@@ -46,47 +57,51 @@ function createCoordinatePlane(canvas, opts) {
   }
 
   function drawGrid() {
-    var w = width(),
-      h = height();
+    var top = layout.offY,
+      bottom = layout.offY + layout.scale * (yMax - yMin);
+    var left = layout.offX,
+      right = layout.offX + layout.scale * (xMax - xMin);
     ctx.save();
     ctx.strokeStyle = "#e4e8ee";
     ctx.lineWidth = 1;
     for (var gx = Math.ceil(xMin); gx <= Math.floor(xMax); gx++) {
       var p = toPixel(gx, 0);
       ctx.beginPath();
-      ctx.moveTo(p.x + 0.5, 0);
-      ctx.lineTo(p.x + 0.5, h);
+      ctx.moveTo(p.x + 0.5, top);
+      ctx.lineTo(p.x + 0.5, bottom);
       ctx.stroke();
     }
     for (var gy = Math.ceil(yMin); gy <= Math.floor(yMax); gy++) {
       var p2 = toPixel(0, gy);
       ctx.beginPath();
-      ctx.moveTo(0, p2.y + 0.5);
-      ctx.lineTo(w, p2.y + 0.5);
+      ctx.moveTo(left, p2.y + 0.5);
+      ctx.lineTo(right, p2.y + 0.5);
       ctx.stroke();
     }
     ctx.restore();
   }
 
   function drawAxes() {
-    var w = width(),
-      h = height();
+    var top = layout.offY,
+      bottom = layout.offY + layout.scale * (yMax - yMin);
+    var left = layout.offX,
+      right = layout.offX + layout.scale * (xMax - xMin);
     var origin = toPixel(0, 0);
     ctx.save();
     ctx.strokeStyle = "#8a94a6";
     ctx.lineWidth = 1.5;
     ctx.beginPath();
-    ctx.moveTo(0, origin.y);
-    ctx.lineTo(w, origin.y);
+    ctx.moveTo(left, origin.y);
+    ctx.lineTo(right, origin.y);
     ctx.stroke();
     ctx.beginPath();
-    ctx.moveTo(origin.x, 0);
-    ctx.lineTo(origin.x, h);
+    ctx.moveTo(origin.x, top);
+    ctx.lineTo(origin.x, bottom);
     ctx.stroke();
     ctx.fillStyle = "#5b6472";
     ctx.font = "12px sans-serif";
-    ctx.fillText("x", w - 14, origin.y - 6);
-    ctx.fillText("y", origin.x + 6, 12);
+    ctx.fillText("x", right - 14, origin.y - 6);
+    ctx.fillText("y", origin.x + 6, top + 12);
     ctx.restore();
   }
 

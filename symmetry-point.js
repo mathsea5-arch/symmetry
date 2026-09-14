@@ -97,7 +97,7 @@ function initSymmetryPointWidget(container) {
     plane.drawAxes();
 
     if (state.compareAll) {
-      ["xaxis", "yaxis", "origin"].forEach(function (key) {
+      ["xaxis", "yaxis", "origin", "yeqx"].forEach(function (key) {
         var rp = reflectPointBy(key, state.P);
         cpDrawSegment(plane, state.P.x, state.P.y, rp.x, rp.y, SYM_COLORS[key], true);
         cpDrawPoint(plane, rp.x, rp.y, SYM_COLORS[key]);
@@ -126,7 +126,7 @@ function initSymmetryPointWidget(container) {
   function updateReadout() {
     var lines = ["P(" + cpFmt(state.P.x) + ", " + cpFmt(state.P.y) + ")"];
     if (state.compareAll) {
-      ["xaxis", "yaxis", "origin"].forEach(function (key) {
+      ["xaxis", "yaxis", "origin", "yeqx"].forEach(function (key) {
         var rp = reflectPointBy(key, state.P);
         lines.push('<span style="color:' + SYM_COLORS[key] + '">' + SYM_LABELS[key] + ": P'(" + cpFmt(rp.x) + ", " + cpFmt(rp.y) + ")</span>");
       });
